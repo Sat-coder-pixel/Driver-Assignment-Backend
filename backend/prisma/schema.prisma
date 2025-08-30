@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Task_DB{
+  id                   Int      @id @default(autoincrement())
+  orderCo              Float?
+  orTy                 String?
+  orderNumber          Float?
+  branchPlant          String?
+  customerPO           String?
+  suburbTown           String?
+  name                 String?
+  description          String?
+  quantityShipped      Float?
+  itemNumber           Float?
+  postalCode           Float?
+  revNbr               Float?
+  revisionReason       String?
+  routeCode            String?
+  schedPick            DateTime?
+  truckId              String?
+  location             String?
+  scheduledPickTime    Float?
+  requestDate          DateTime?
+  soldTo               Float?
+  shipTo               Float?
+  deliverTo            Float?
+  stateCode            String?
+  lnTy                 String?
+  descriptionLine2     String?
+  zoneNo               String?
+  stopCode             String?
+  nextStat             Float?
+  lastStat             Float?
+  priority             Float?
+  futureQtyCommitted   Float?
+  quantityOrdered      Float?
+  reasonCode           String?
+  lineNumber           Float?
+}
