@@ -51,3 +51,24 @@ model Task_DB{
   reasonCode           String?
   lineNumber           Float?
 }
+
+enum Status {
+  available
+  unavailable
+}
+
+model Driver_Db {
+  id          Int      @id @default(autoincrement())
+  truckNo     Int?
+  cubic       Float?   @map("Cubic (m3)")
+  driverName  String?  @map("Drivers Name")
+  truckType   String?  @map("Truck")
+  status      Status   @default(available)
+}
+model User_Db {
+  id          Int      @id @default(autoincrement())
+  username    String   @unique
+  email       String   @unique
+  password    String
+  role        String
+}

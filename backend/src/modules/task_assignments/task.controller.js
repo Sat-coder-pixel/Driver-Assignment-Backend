@@ -3,6 +3,7 @@ const fs = require('fs');
 const { PrismaClient } = require('../../generated/prisma');
 const prisma = new PrismaClient();
 
+// ----------------- POPULATE TASK DB -----------------
 exports.uploadExcel = async (req, res) => {
   try {
     console.log(req.file);
@@ -65,5 +66,69 @@ exports.uploadExcel = async (req, res) => {
   } catch (err) {
     console.error("Upload Error:", err);
     res.status(500).json({ error: "Upload failed" });
+  }
+};
+
+// ----------------- POPULATE DRIVER DB -----------------
+exports.populateDriverDB = async (req, res) => {
+  try {
+    console.log(req.file);
+    const filePath = req.file.path;
+
+    // Read Excel
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    // Format rows according to Prisma Truck schema
+    const formatted = data.map(row => ({
+      truckNo: row["Truck No"] ? Number(row["Truck No"]) : null,
+      cubic: row["Cubic (m3)"] ? Number(row["Cubic (m3)"]) : null,
+      driverName: row["Drivers Name"] || null,
+      truckType: row["Truck"] || null,
+      status: "available", // default since not in excel
+    }));
+
+    console.log("Formatted Driver Data:", formatted.slice(0, 3)); // log first 3 rows
+
+    // Bulk insert
+    await prisma.driver_Db.createMany({
+      data: formatted,
+      skipDuplicates: true, // avoids duplicate insertions
+    });
+
+    fs.unlinkSync(filePath); // clean up
+    res.status(200).json({ message: "Drivers inserted into DB." });
+  } catch (err) {
+    console.error("Driver Upload Error:", err);
+    res.status(500).json({ error: "Upload failed" });
+  }
+};
+
+
+// ----------------- FETCH TASK DATA -----------------
+exports.getUnassignedTasks = async (req, res) => {
+  console.log("here");
+  try {
+    const tasks = await prisma.task_DB.findMany();
+    res.status(200).json(tasks);
+  } catch (err) {
+    console.error("Fetch Tasks Error:", err);
+    res.status(500).json({ error: "Failed to fetch tasks" });
+  }
+};
+
+// ----------------- FETCH DRIVER DATA -----------------
+exports.getAvailableDrivers = async (req, res) => {
+  try {
+    const drivers = await prisma.driver_Db.findMany({
+      where: {
+        status: "available",   // filter by status
+      },
+    });
+    res.status(200).json(drivers);
+  } catch (err) {
+    console.error("Fetch Drivers Error:", err);
+    res.status(500).json({ error: "Failed to fetch available drivers" });
   }
 };
