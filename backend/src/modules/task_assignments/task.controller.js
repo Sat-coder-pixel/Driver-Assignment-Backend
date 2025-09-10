@@ -108,13 +108,147 @@ exports.populateDriverDB = async (req, res) => {
 
 // ----------------- FETCH TASK DATA -----------------
 exports.getUnassignedTasks = async (req, res) => {
-  console.log("here");
   try {
-    const tasks = await prisma.task_DB.findMany();
+    const tasks = await prisma.task_DB.findMany({ where: { isassigned: false } });
     res.status(200).json(tasks);
   } catch (err) {
     console.error("Fetch Tasks Error:", err);
     res.status(500).json({ error: "Failed to fetch tasks" });
+  }
+};
+
+// Assign tasks: accepts { tasks: [ { taskId, truckNo, cubic, driverName, truckType } ] }
+exports.assignTasks = async (req, res) => {
+  try {
+    const { tasks } = req.body;
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      return res.status(400).json({ message: 'tasks array required' });
+    }
+
+    // Build creation payloads for AssignedTask_DB
+    const createData = tasks.map(t => {
+      const base = { taskId: t.taskId };
+      // copy possible fields if provided (minimal mapping)
+      if (t.truckNo) base.truckNo = t.truckNo;
+      if (t.cubic) base.cubic = t.cubic;
+      if (t.driverName) base.driverName = t.driverName;
+      if (t.truckType) base.truckType = t.truckType;
+      if (t.invoiceId) base.invoiceId = t.invoiceId;
+      if (t.manifestNo) base.manifestNo = t.manifestNo;
+      return base;
+    });
+
+    // Insert AssignedTask_DB entries (use createMany where possible)
+    await prisma.$transaction(async (tx) => {
+      // create individual records so we can copy over task fields from Task_DB
+      for (const t of tasks) {
+        // fetch task row
+        const taskRow = await tx.task_DB.findUnique({ where: { taskId: t.taskId } });
+        if (!taskRow) continue; // skip invalid ids
+
+        // build record by copying fields from taskRow and merging provided driver fields
+        const assignedRecord = {
+          taskId: taskRow.taskId,
+          orderCo: taskRow.orderCo,
+          orTy: taskRow.orTy,
+          orderNumber: taskRow.orderNumber,
+          branchPlant: taskRow.branchPlant,
+          customerPO: taskRow.customerPO,
+          suburbTown: taskRow.suburbTown,
+          name: taskRow.name,
+          description: taskRow.description,
+          quantityShipped: taskRow.quantityShipped,
+          itemNumber: taskRow.itemNumber,
+          postalCode: taskRow.postalCode,
+          revNbr: taskRow.revNbr,
+          revisionReason: taskRow.revisionReason,
+          routeCode: taskRow.routeCode,
+          schedPick: taskRow.schedPick,
+          truckId: taskRow.truckId,
+          location: taskRow.location,
+          scheduledPickTime: taskRow.scheduledPickTime,
+          requestDate: taskRow.requestDate,
+          soldTo: taskRow.soldTo,
+          shipTo: taskRow.shipTo,
+          deliverTo: taskRow.deliverTo,
+          stateCode: taskRow.stateCode,
+          lnTy: taskRow.lnTy,
+          descriptionLine2: taskRow.descriptionLine2,
+          zoneNo: taskRow.zoneNo,
+          stopCode: taskRow.stopCode,
+          nextStat: taskRow.nextStat,
+          lastStat: taskRow.lastStat,
+          priority: taskRow.priority,
+          futureQtyCommitted: taskRow.futureQtyCommitted,
+          quantityOrdered: taskRow.quantityOrdered,
+          reasonCode: taskRow.reasonCode,
+          lineNumber: taskRow.lineNumber,
+          // driver fields (from request)
+          truckNo: t.truckNo || null,
+          cubic: t.cubic || null,
+          driverName: t.driverName || null,
+          truckType: t.truckType || null,
+          invoiceId: t.invoiceId || null,
+          manifestNo: t.manifestNo || null,
+        };
+
+        await tx.assignedTask_DB.create({ data: assignedRecord });
+
+        // mark original task as assigned
+        await tx.task_DB.update({ where: { taskId: t.taskId }, data: { isassigned: true } });
+      }
+    });
+
+    return res.status(201).json({ message: 'Tasks assigned' });
+  } catch (err) {
+    console.error('Assign Tasks Error:', err);
+    return res.status(500).json({ message: 'Failed to assign tasks' });
+  }
+};
+
+// ----------------- FETCH TASK DATA -----------------
+exports.getTasksInProgress = async (req, res) => {
+  try {
+    const tasks = await prisma.assignedTask_DB.findMany({ where: { isCompleted : false } });
+    res.status(200).json(tasks);
+  } catch (err) {
+    console.error("Fetch Tasks Error:", err);
+    res.status(500).json({ error: "Failed to fetch tasks" });
+  }
+};
+// Update invoiceId and/or manifestNo on AssignedTask_DB. Accepts { updates: [ { assignedTaskId?, orderNumber?, invoiceId?, manifestNo? } ] }
+exports.updateInvoiceManifest = async (req, res) => {
+  try {
+    const { updates } = req.body;
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ message: 'updates array required' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const u of updates) {
+        const where = {};
+        if (u.assignedTaskId) where.assignedTaskId = u.assignedTaskId;
+        else if (u.orderNumber) {
+          // find by orderNumber
+          const found = await tx.assignedTask_DB.findFirst({ where: { orderNumber: u.orderNumber } });
+          if (!found) continue;
+          where.assignedTaskId = found.assignedTaskId;
+        } else {
+          continue; // nothing to target
+        }
+
+        const data = {};
+        if (typeof u.invoiceId !== 'undefined') data.invoiceId = u.invoiceId;
+        if (typeof u.manifestNo !== 'undefined') data.manifestNo = u.manifestNo;
+
+        await tx.assignedTask_DB.update({ where, data });
+      }
+    });
+
+    return res.status(200).json({ message: 'Updates applied' });
+  } catch (err) {
+    console.error('Update Invoice/Manifest Error:', err);
+    return res.status(500).json({ message: 'Failed to update records' });
   }
 };
 

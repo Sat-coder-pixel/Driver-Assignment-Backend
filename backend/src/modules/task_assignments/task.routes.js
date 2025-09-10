@@ -12,8 +12,15 @@ router.post('/upload-excel', upload.single('file'), (req, res, next) => {
 }, taskController.uploadExcel);
 // router.post('/upload-excel', upload.single('file'), taskController.uploadExcel);
 
-router.get("/getUnassignedTasks", authenticateToken, authorizeRoles("Admin"), taskController.getUnassignedTasks);
-router.get("/getAvailableDrivers", authenticateToken, authorizeRoles("Admin"), taskController.getAvailableDrivers);
-  
+router.get("/getUnassignedTasks", authenticateToken, taskController.getUnassignedTasks);
+router.get("/getAvailableDrivers", authenticateToken, taskController.getAvailableDrivers);
+
+// Get tasks in progress (not completed)
+router.get("/getTasksInProgress", authenticateToken, taskController.getTasksInProgress);
+// Assign tasks: create entries in AssignedTask_DB
+router.post('/assignTasks', authenticateToken,  taskController.assignTasks);
+
+// Update manifestNo and/or invoiceId for assigned tasks (can update multiple by orderNumber or assignedTaskId)
+router.post('/assignedTasks/updateInvoiceManifest', authenticateToken, taskController.updateInvoiceManifest);
 
 module.exports = router;

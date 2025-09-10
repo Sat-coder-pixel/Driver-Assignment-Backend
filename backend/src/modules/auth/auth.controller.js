@@ -91,3 +91,15 @@ exports.verifyToken = async (req, res) => {
         return res.status(401).json({ message: 'Invalid token' });
     }
 };
+
+// Logout: clear the token cookie
+exports.logout = async (req, res) => {
+    try {
+        // Clear cookie named 'token'
+        res.clearCookie('token');
+        return res.status(200).json({ message: 'Logged out' });
+    } catch (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+};
