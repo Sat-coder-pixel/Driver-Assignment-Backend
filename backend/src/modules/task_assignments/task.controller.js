@@ -216,6 +216,26 @@ exports.getTasksInProgress = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch tasks" });
   }
 };
+
+// ----------------- FETCH Completed DATA -----------------
+exports.getCompletedTasks = async (req, res) => {
+  try {
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2); // subtract 2 days
+
+    const tasks = await prisma.completedTask_DB.findMany({
+      where: {
+        completedAt: {
+          gte: twoDaysAgo,
+        },
+      },
+    });
+    res.status(200).json(tasks);
+  } catch (err) {
+    console.error("Fetch Tasks Error:", err);
+    res.status(500).json({ error: "Failed to fetch tasks" });
+  }
+};
 // Update invoiceId and/or manifestNo on AssignedTask_DB. Accepts { updates: [ { assignedTaskId?, orderNumber?, invoiceId?, manifestNo? } ] }
 exports.updateInvoiceManifest = async (req, res) => {
   try {

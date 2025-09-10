@@ -17,6 +17,10 @@ router.get("/getAvailableDrivers", authenticateToken, taskController.getAvailabl
 
 // Get tasks in progress (not completed)
 router.get("/getTasksInProgress", authenticateToken, taskController.getTasksInProgress);
+
+// Get completed tasks (last 2 days)
+router.get("/getCompletedTasks", authenticateToken, taskController.getCompletedTasks);
+
 // Assign tasks: create entries in AssignedTask_DB
 router.post('/assignTasks', authenticateToken,  taskController.assignTasks);
 
