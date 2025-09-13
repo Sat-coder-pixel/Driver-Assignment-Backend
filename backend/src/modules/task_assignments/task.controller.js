@@ -272,6 +272,86 @@ exports.updateInvoiceManifest = async (req, res) => {
   }
 };
 
+// Upload invoice Excel and update AssignedTask_DB records by orderNumber
+exports.uploadInvoiceExcel = async (req, res) => {
+  try {
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({ message: 'file required' });
+    }
+
+    const filePath = req.file.path;
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const rows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    // Normalize header keys to lowercase for flexible matching
+    const normalize = key => (key || '').toString().trim().toLowerCase();
+
+    for (const row of rows) {
+      // find keys for order number, document number (invoice), manifest
+      const keys = Object.keys(row);
+      let orderValue;
+      let invoiceValue;
+      let manifestValue;
+
+      for (const k of keys) {
+        const nk = normalize(k);
+        const v = row[k];
+        if (!v && v !== 0) continue;
+        if (nk.includes('order') && nk.includes('number')) {
+          orderValue = v;
+        } else if (nk === 'order number' || nk === 'ordernumber' || nk === 'orderno' || nk === 'order no') {
+          orderValue = v;
+        } else if (nk.includes('document') && nk.includes('number')) {
+          invoiceValue = v;
+        } else if (nk.includes('invoice') || nk.includes('document')) {
+          // prefer explicit invoice headers too
+          invoiceValue = invoiceValue || v;
+        } else if (nk.includes('manifest')) {
+          manifestValue = v;
+        }
+      }
+
+      // fallback attempts: try common keys
+      if (!orderValue) {
+        orderValue = row['Order Number'] || row['orderNumber'] || row['OrderNo'] || row['Order No'];
+      }
+      if (!invoiceValue) {
+        invoiceValue = row['Document Number'] || row['DocumentNumber'] || row['Invoice No'] || row['InvoiceNumber'];
+      }
+      if (!manifestValue) {
+        manifestValue = row['Manifest Number'] || row['ManifestNo'] || row['Manifest Number'];
+      }
+
+      if (!orderValue) continue; // nothing to match
+
+      // parse order as number if possible
+      const orderNum = typeof orderValue === 'number' ? orderValue : parseFloat(String(orderValue).replace(/[^0-9.-]+/g, ''));
+      const invoiceStr = invoiceValue != null ? String(invoiceValue) : null;
+      const manifestStr = manifestValue != null ? String(manifestValue) : null;
+
+      const data = {};
+      if (invoiceStr) data.invoiceId = invoiceStr;
+      if (manifestStr) data.manifestNo = manifestStr;
+      if (Object.keys(data).length === 0) continue; // nothing to update
+
+      // Update all AssignedTask_DB rows with matching orderNumber
+      await prisma.assignedTask_DB.updateMany({
+        where: { orderNumber: orderNum },
+        data,
+      });
+    }
+
+    // cleanup file
+    try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
+
+    return res.status(200).json({ message: 'Invoice sheet processed' });
+  } catch (err) {
+    console.error('Upload Invoice Error:', err);
+    return res.status(500).json({ message: 'Failed to process invoice sheet' });
+  }
+};
+
 // ----------------- FETCH DRIVER DATA -----------------
 exports.getAvailableDrivers = async (req, res) => {
   try {

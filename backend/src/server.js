@@ -7,9 +7,17 @@ app.listen(3000, () => {
   try {
     if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
       startListening();
-      console.log('Automation started');
+      console.log('Task automation started');
+      // start invoice automation as well
+      try {
+        const { startListening: startInvoice } = require('./automation/invoiceautomation');
+        startInvoice();
+        console.log('Invoice automation started');
+      } catch (e) {
+        console.error('Failed to start invoice automation:', e);
+      }
     } else {
-      console.log('GMAIL credentials not set; automation not started');
+      console.log('GMAIL credentials not set; automations not started');
     }
   } catch (e) {
     console.error('Failed to start automation:', e);

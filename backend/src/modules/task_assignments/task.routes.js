@@ -10,6 +10,11 @@ router.post('/upload-excel', upload.single('file'), (req, res, next) => {
   // console.log('req.file:', req.file);
   next();
 }, taskController.uploadExcel);
+// Invoice upload route
+router.post('/upload-invoice-excel', upload.single('file'), (req, res, next) => {
+  console.log('Reached upload invoice sheet middleware');
+  next();
+}, taskController.uploadInvoiceExcel);
 // router.post('/upload-excel', upload.single('file'), taskController.uploadExcel);
 
 router.get("/getUnassignedTasks", authenticateToken, taskController.getUnassignedTasks);
