@@ -10,7 +10,12 @@ exports.uploadExcel = async (req, res) => {
     const filePath = req.file.path;
 
     // Read Excel
-    const workbook = xlsx.readFile(filePath);
+    let workbook;
+    if (req.file && req.file.buffer) {
+      workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    } else {
+      workbook = xlsx.readFile(filePath);
+    }
     const sheetName = workbook.SheetNames[0];
     const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
@@ -61,8 +66,8 @@ exports.uploadExcel = async (req, res) => {
       skipDuplicates: true, // prevents error if same row already exists
     });
 
-    fs.unlinkSync(filePath); // clean up
-    res.status(200).json({ message: "Tasks inserted into DB." });
+  try { if (req.file && req.file.path) fs.unlinkSync(req.file.path); } catch (e) { /* ignore cleanup errors */ }
+  res.status(200).json({ message: "Tasks inserted into DB." });
   } catch (err) {
     console.error("Upload Error:", err);
     res.status(500).json({ error: "Upload failed" });
@@ -97,8 +102,8 @@ exports.populateDriverDB = async (req, res) => {
       skipDuplicates: true, // avoids duplicate insertions
     });
 
-    fs.unlinkSync(filePath); // clean up
-    res.status(200).json({ message: "Drivers inserted into DB." });
+  try { if (req.file && req.file.path) fs.unlinkSync(req.file.path); } catch (e) { /* ignore cleanup errors */ }
+  res.status(200).json({ message: "Drivers inserted into DB." });
   } catch (err) {
     console.error("Driver Upload Error:", err);
     res.status(500).json({ error: "Upload failed" });
@@ -275,12 +280,17 @@ exports.updateInvoiceManifest = async (req, res) => {
 // Upload invoice Excel and update AssignedTask_DB records by orderNumber
 exports.uploadInvoiceExcel = async (req, res) => {
   try {
-    if (!req.file || !req.file.path) {
+    if (!req.file || (!req.file.path && !req.file.buffer)) {
       return res.status(400).json({ message: 'file required' });
     }
 
-    const filePath = req.file.path;
-    const workbook = xlsx.readFile(filePath);
+    let workbook;
+    if (req.file.buffer) {
+      workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    } else {
+      const filePath = req.file.path;
+      workbook = xlsx.readFile(filePath);
+    }
     const sheetName = workbook.SheetNames[0];
     const rows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
@@ -342,8 +352,8 @@ exports.uploadInvoiceExcel = async (req, res) => {
       });
     }
 
-    // cleanup file
-    try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
+  // cleanup file if path used
+  try { if (req.file && req.file.path) fs.unlinkSync(req.file.path); } catch (e) { /* ignore */ }
 
     return res.status(200).json({ message: 'Invoice sheet processed' });
   } catch (err) {
