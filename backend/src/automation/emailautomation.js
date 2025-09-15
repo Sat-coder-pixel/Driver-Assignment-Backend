@@ -115,10 +115,8 @@ function fetchNewEmails(imap) {
 
 async function sendMissingInvoiceAlert() {
     try {
-        const { PrismaClient } = require('../generated/prisma');
-        const prisma = new PrismaClient();
-
-        const rows = await prisma.assignedTask_DB.findMany({ where: { OR: [{ invoiceId: null }, { invoiceId: '' }] }, take: 100 });
+    const prisma = require('../lib/prisma');
+    const rows = await prisma.assignedTask_DB.findMany({ where: { OR: [{ invoiceId: null }, { invoiceId: '' }] }, take: 100 });
         if (!rows || rows.length === 0) {
             console.log('No missing invoice rows');
             return;
@@ -133,9 +131,9 @@ async function sendMissingInvoiceAlert() {
         });
 
         const info = await transporter.sendMail({
-            from: process.env.GMAIL_USER,
-            to: 'Satkaushik131@gmail.com',
-            subject: 'Missing invoiceId rows - AssignedTask_DB',
+            from: process.env.ALERT_EMAIL_FROM,
+            to: process.env.ALERT_EMAIL_TO,
+            subject: process.env.ALERT_EMAIL_SUBJECT,
             html
         });
 

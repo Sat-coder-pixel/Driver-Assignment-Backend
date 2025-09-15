@@ -1,12 +1,10 @@
 const xlsx = require('xlsx');
 const fs = require('fs');
-const { PrismaClient } = require('../../generated/prisma');
-const prisma = new PrismaClient();
+const prisma = require('../../lib/prisma');
 
 // ----------------- POPULATE TASK DB -----------------
 exports.uploadExcel = async (req, res) => {
   try {
-    console.log(req.file);
     const filePath = req.file.path;
 
     // Read Excel
@@ -57,9 +55,6 @@ exports.uploadExcel = async (req, res) => {
   lineNumber: row["Line Number"] ? Number(row["Line Number"]) : null,
 }));
 
-
-    console.log("Formatted Data:", formatted.slice(0, 3)); // log first 3 rows
-
     // Bulk insert
     await prisma.task_DB.createMany({
       data: formatted,
@@ -77,7 +72,6 @@ exports.uploadExcel = async (req, res) => {
 // ----------------- POPULATE DRIVER DB -----------------
 exports.populateDriverDB = async (req, res) => {
   try {
-    console.log(req.file);
     const filePath = req.file.path;
 
     // Read Excel
@@ -93,8 +87,6 @@ exports.populateDriverDB = async (req, res) => {
       truckType: row["Truck"] || null,
       status: "available", // default since not in excel
     }));
-
-    console.log("Formatted Driver Data:", formatted.slice(0, 3)); // log first 3 rows
 
     // Bulk insert
     await prisma.driver_Db.createMany({

@@ -1,17 +1,12 @@
 const jwt= require("jsonwebtoken");
 const bcrypt= require("bcryptjs");
 
-const { PrismaClient } = require('../../generated/prisma');
-const prisma = new PrismaClient();
+const prisma = require('../../lib/prisma');
 
 exports.signup= async(req,res)=>{
     const {username,email,password}= req.body;
     try{
         const hashedPassword= await bcrypt.hash(password,10);
-        // console.log(username); 
-        // console.log(email);
-        // console.log(role);
-        // console.log(hashedPassword);
         const user= await prisma.User_Db.create({
             data: {username,email,password: hashedPassword}
         });
@@ -61,7 +56,6 @@ exports.verifyToken = async (req, res) => {
         // Accept token from Authorization header, cookie, or body
         let token;
         const authHeader = req.headers.authorization || req.headers.Authorization;
-        console.log("Verifying token from header:", authHeader);
         if (authHeader && authHeader.startsWith('Bearer ')) {
             token = authHeader.split(' ')[1];
         } else if (req.cookies && req.cookies.token) {

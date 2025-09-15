@@ -8,19 +8,19 @@
 # server with the prisma dev CLI command, when not choosing any non-default ports or settings. The API key, unlike the 
 # one found in a remote Prisma Postgres URL, does not contain any sensitive information.
 
-DATABASE_URL="postgresql://neondb_owner:npg_wcLrGdDto4Q0@ep-shiny-sunset-a7ug27ka-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DATABASE_URL=""
 
-JWT_SECRET="TempSecret"
+JWT_SECRET=""
 
 
 # Gmail IMAP Configuration
-GMAIL_USER=satkaushik131@gmail.com
-GMAIL_APP_PASSWORD="swdf zcwe ikbr qhsg"
+GMAIL_USER=""
+GMAIL_APP_PASSWORD=""
 
 # Send Alert configuration
-ALERT_EMAIL_FROM=satkaushik131@gmail.com
-ALERT_EMAIL_TO=satkaushik131@gmail.com
-ALERT_EMAIL_SUBJECT="Alert: Missing invoiceId for attached order ids"
+ALERT_EMAIL_FROM=""
+ALERT_EMAIL_TO=""
+ALERT_EMAIL_SUBJECT=""
 
 # Email Processing Settings
 CHECK_INTERVAL=2 # minutes
@@ -29,4 +29,4 @@ CHECK_INTERVAL=2 # minutes
 NODE_TLS_REJECT_UNAUTHORIZED=0
 
 #ENV port
-PORT=3000
+PORT=""
